@@ -90,3 +90,51 @@ npm run dev
 - Restrict `FRONTEND_ORIGIN` to your deployed frontend URL.
 - Use provider app password or transactional email credentials.
 - For production email delivery, SendGrid/Postmark/SES is recommended over personal SMTP.
+
+## Deploy Frontend on Netlify
+
+This repo includes `netlify.toml`, so Netlify can auto-detect build settings.
+
+1. Import this GitHub repo into Netlify.
+2. Netlify reads:
+   - Base directory: `frontend`
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+3. In Netlify **Site configuration -> Environment variables**, add:
+   - `VITE_API_URL=https://<your-render-backend>.onrender.com`
+4. Trigger a redeploy.
+
+### Netlify SPA routing
+
+The included redirect rule sends all routes to `index.html`, so client-side routing works.
+
+## Deploy Backend on Render
+
+This repo includes `render.yaml` for backend deployment from `backend/`.
+
+1. In Render, create a new Blueprint/Web Service from this repo.
+2. Confirm service settings:
+   - Root directory: `backend`
+   - Build command: `npm install`
+   - Start command: `npm start`
+   - Health check: `/health`
+3. Add required environment variables in Render:
+   - `FRONTEND_ORIGIN=https://<your-netlify-site>.netlify.app`
+   - `EMAIL_USER=<sender email>`
+   - `EMAIL_PASS=<sender password or API key>`
+   - `RECEIVER_EMAIL=<where proposal email is received>`
+4. If using SMTP relay providers (recommended), also set:
+   - `SMTP_HOST`
+   - `SMTP_PORT` (for example `465`)
+   - `SMTP_SECURE` (`true` or `false`)
+   - `SMTP_USER`
+   - `SMTP_PASS`
+5. Deploy and verify:
+   - `GET https://<your-render-backend>.onrender.com/health` returns `{ "status": "ok" }`
+
+## Final Wiring Checklist
+
+- Netlify `VITE_API_URL` points to Render backend URL.
+- Render `FRONTEND_ORIGIN` points to Netlify frontend URL.
+- Email credentials are valid for selected SMTP mode.
+- Test **Yes ❤️** button after both deployments are live.
