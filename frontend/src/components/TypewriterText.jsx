@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 
 function TypewriterText({ text, speed = 22 }) {
+  return <TypewriterTextInstance key={`${text}-${speed}`} text={text} speed={speed} />
+}
+
+function TypewriterTextInstance({ text, speed }) {
   const [visibleText, setVisibleText] = useState('')
 
   useEffect(() => {
-    setVisibleText('')
     let index = 0
     const timer = setInterval(() => {
       index += 1
