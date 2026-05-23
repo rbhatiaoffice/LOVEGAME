@@ -20,12 +20,16 @@ function App() {
 
   const memoryText = useMemo(() => {
     if (answerLog.length === 0) return 'Our story starts with one click and a million smiles.'
-    const lastChoice = answerLog[answerLog.length - 1]
+    const lastChoice = answerLog[answerLog.length - 1].answer
     return `Latest chapter unlocked: "${lastChoice}" ✨`
   }, [answerLog])
 
   const handleChoice = (choiceLabel) => {
-    setAnswerLog((prev) => [...prev, choiceLabel])
+    const step = storySteps[currentStep]
+    setAnswerLog((prev) => [
+      ...prev,
+      { question: step.question, answer: choiceLabel },
+    ])
     setCurrentStep((prev) => prev + 1)
   }
 
@@ -56,7 +60,8 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: 'She said YES! 💍',
-          text: 'Khushi accepted your proposal!',
+          proposalAccepted: true,
+          answers: answerLog,
         }),
       })
 

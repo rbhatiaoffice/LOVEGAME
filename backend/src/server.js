@@ -60,7 +60,68 @@ function shouldUseResendApi(smtpHost) {
   return Boolean(smtpHost && smtpHost.includes('resend.com'))
 }
 
-async function sendViaResendApi({ apiKey, from, to, subject, text }) {
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function formatEmailContent({ answers, proposalAccepted, fallbackText }) {
+  const normalizedAnswers = Array.isArray(answers)
+    ? answers
+        .map((entry, index) => ({
+          question: entry?.question || `Question ${index + 1}`,
+          answer: entry?.answer || entry?.label || '(no answer)',
+        }))
+        .filter((entry) => entry.question || entry.answer)
+    : []
+
+  const textLines = [
+    'Khushi completed the love journey!',
+    '',
+    ...(proposalAccepted ? ['Final answer: YES! 💍', ''] : []),
+    '--- Her answers ---',
+    '',
+  ]
+
+  if (normalizedAnswers.length > 0) {
+    normalizedAnswers.forEach((entry, index) => {
+      textLines.push(`${index + 1}. ${entry.question}`)
+      textLines.push(`   Answer: ${entry.answer}`)
+      textLines.push('')
+    })
+  } else {
+    textLines.push(fallbackText || '(No journey answers recorded)')
+  }
+
+  const answerListHtml = normalizedAnswers.length > 0
+    ? `<ol>${normalizedAnswers
+        .map(
+          (entry) =>
+            `<li style="margin-bottom:16px;"><strong>${escapeHtml(entry.question)}</strong><br/>Answer: ${escapeHtml(entry.answer)}</li>`,
+        )
+        .join('')}</ol>`
+    : `<p>${escapeHtml(fallbackText || 'No journey answers recorded.')}</p>`
+
+  const html = `
+    <div style="font-family:Georgia,serif;color:#334155;max-width:600px;">
+      <h2 style="color:#be185d;">Khushi completed the love journey! 💕</h2>
+      ${proposalAccepted ? '<p style="font-size:18px;"><strong>Final answer: YES! 💍</strong></p>' : ''}
+      <h3>Her answers</h3>
+      ${answerListHtml}
+    </div>
+  `.trim()
+
+  return {
+    text: textLines.join('\n').trim(),
+    html,
+    answerCount: normalizedAnswers.length,
+  }
+}
+
+async function sendViaResendApi({ apiKey, from, to, subject, text, html }) {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -73,6 +134,7 @@ async function sendViaResendApi({ apiKey, from, to, subject, text }) {
       to: [to],
       subject,
       text,
+      html,
     }),
   })
 
@@ -192,8 +254,17 @@ app.post('/send-email', async (req, res) => {
   }
 
   const subject = req.body?.subject || 'She said YES! 💍'
-  const text = req.body?.text || 'Khushi accepted your proposal!'
-  console.log(`${logPrefix} sending email`, { subject, textLength: text.length, to: mask(receiverEmail) })
+  const { text, html, answerCount } = formatEmailContent({
+    answers: req.body?.answers,
+    proposalAccepted: req.body?.proposalAccepted,
+    fallbackText: req.body?.text,
+  })
+  console.log(`${logPrefix} sending email`, {
+    subject,
+    textLength: text.length,
+    answerCount,
+    to: mask(receiverEmail),
+  })
 
   try {
     let info
@@ -207,6 +278,7 @@ app.post('/send-email', async (req, res) => {
           to: receiverEmail,
           subject,
           text,
+          html,
         }),
         emailSendTimeoutMs,
         'Resend API send',
@@ -239,6 +311,7 @@ app.post('/send-email', async (req, res) => {
           to: receiverEmail,
           subject,
           text,
+          html,
         }),
         emailSendTimeoutMs,
         'Email send',
