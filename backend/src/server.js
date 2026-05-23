@@ -22,6 +22,65 @@ function normalizeOrigin(origin) {
 }
 
 const frontendOrigin = normalizeOrigin(process.env.FRONTEND_ORIGIN) || '*'
+const emailSendTimeoutMs = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 25000)
+
+function corsOrigin(origin, callback) {
+  if (!origin || frontendOrigin === '*') {
+    callback(null, true)
+    return
+  }
+  if (normalizeOrigin(origin) === frontendOrigin) {
+    callback(null, true)
+    return
+  }
+  console.warn(`${logPrefix} blocked CORS origin`, { origin, allowed: frontendOrigin })
+  callback(new Error(`Origin ${origin} not allowed`))
+}
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    }),
+  ])
+}
+
+function createMailTransporter({ emailUser, emailPass, smtpHost, smtpPort, smtpSecure }) {
+  const transportOptions = {
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    auth: {
+      user: process.env.SMTP_USER || emailUser,
+      pass: process.env.SMTP_PASS || emailPass,
+    },
+  }
+
+  if (smtpHost) {
+    return nodemailer.createTransport({
+      ...transportOptions,
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+    })
+  }
+
+  const emailService = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase()
+  if (emailService === 'gmail') {
+    return nodemailer.createTransport({
+      ...transportOptions,
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+    })
+  }
+
+  return nodemailer.createTransport({
+    service: emailService,
+    ...transportOptions,
+  })
+}
 
 function logEmailConfig(context) {
   console.log(`${logPrefix} ${context} email config:`, {
@@ -40,7 +99,7 @@ function logEmailConfig(context) {
   })
 }
 
-app.use(cors({ origin: frontendOrigin }))
+app.use(cors({ origin: corsOrigin }))
 app.use(express.json())
 
 app.use((req, _res, next) => {
@@ -79,33 +138,36 @@ app.post('/send-email', async (req, res) => {
   console.log(`${logPrefix} sending email`, { subject, textLength: text.length, to: mask(receiverEmail) })
 
   try {
-    const transporterMode = smtpHost ? 'smtp-host' : `service:${process.env.EMAIL_SERVICE || 'gmail'}`
-    console.log(`${logPrefix} creating transporter`, { mode: transporterMode, smtpPort, smtpSecure })
-
-    const transporter = smtpHost
-      ? nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpSecure,
-          auth: {
-            user: process.env.SMTP_USER || emailUser,
-            pass: process.env.SMTP_PASS || emailPass,
-          },
-        })
-      : nodemailer.createTransport({
-          service: process.env.EMAIL_SERVICE || 'gmail',
-          auth: {
-            user: emailUser,
-            pass: emailPass,
-          },
-        })
-
-    const info = await transporter.sendMail({
-      from: emailUser,
-      to: receiverEmail,
-      subject,
-      text,
+    const transporterMode = smtpHost
+      ? 'smtp-host'
+      : (process.env.EMAIL_SERVICE || 'gmail').toLowerCase() === 'gmail'
+        ? 'gmail-smtp'
+        : `service:${process.env.EMAIL_SERVICE || 'gmail'}`
+    console.log(`${logPrefix} creating transporter`, {
+      mode: transporterMode,
+      smtpPort,
+      smtpSecure,
+      emailSendTimeoutMs,
     })
+
+    const transporter = createMailTransporter({
+      emailUser,
+      emailPass,
+      smtpHost,
+      smtpPort,
+      smtpSecure,
+    })
+
+    const info = await withTimeout(
+      transporter.sendMail({
+        from: emailUser,
+        to: receiverEmail,
+        subject,
+        text,
+      }),
+      emailSendTimeoutMs,
+      'Email send',
+    )
 
     console.log(`${logPrefix} email sent successfully`, {
       messageId: info.messageId,
@@ -128,7 +190,7 @@ app.post('/send-email', async (req, res) => {
   }
 })
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`${logPrefix} listening on port ${port}`)
   logEmailConfig('on startup')
 })
