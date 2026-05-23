@@ -46,6 +46,45 @@ function withTimeout(promise, ms, label) {
   ])
 }
 
+function getResendApiKey() {
+  const candidates = [
+    process.env.RESEND_API_KEY,
+    process.env.SMTP_PASS,
+    process.env.EMAIL_PASS,
+  ]
+  return candidates.find((key) => key && String(key).startsWith('re_'))
+}
+
+function shouldUseResendApi(smtpHost) {
+  if (getResendApiKey()) return true
+  return Boolean(smtpHost && smtpHost.includes('resend.com'))
+}
+
+async function sendViaResendApi({ apiKey, from, to, subject, text }) {
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'khushi-love-journey-backend/1.0',
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      text,
+    }),
+  })
+
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const detail = body?.message || body?.error?.message || JSON.stringify(body)
+    throw new Error(`Resend API error (${response.status}): ${detail}`)
+  }
+
+  return body
+}
+
 function createMailTransporter({ emailUser, emailPass, smtpHost, smtpPort, smtpSecure }) {
   const transportOptions = {
     connectionTimeout: 10000,
@@ -58,11 +97,15 @@ function createMailTransporter({ emailUser, emailPass, smtpHost, smtpPort, smtpS
   }
 
   if (smtpHost) {
+    const isResend = smtpHost.includes('resend.com')
+    const port = smtpPort || (isResend ? 587 : 587)
+    const secure = isResend ? false : smtpSecure
     return nodemailer.createTransport({
       ...transportOptions,
       host: smtpHost,
-      port: smtpPort,
-      secure: smtpSecure,
+      port,
+      secure,
+      requireTLS: isResend && !secure,
     })
   }
 
@@ -96,6 +139,8 @@ function logEmailConfig(context) {
     SMTP_SECURE: process.env.SMTP_SECURE || '(not set)',
     SMTP_USER: mask(process.env.SMTP_USER),
     SMTP_PASS: process.env.SMTP_PASS ? '(set)' : '(not set)',
+    RESEND_API_KEY: process.env.RESEND_API_KEY ? '(set)' : '(not set)',
+    useResendApi: shouldUseResendApi(process.env.SMTP_HOST),
   })
 }
 
@@ -121,8 +166,21 @@ app.post('/send-email', async (req, res) => {
   const smtpHost = process.env.SMTP_HOST
   const smtpPort = Number(process.env.SMTP_PORT || 587)
   const smtpSecure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true'
+  const resendApiKey = getResendApiKey()
+  const useResendApi = shouldUseResendApi(smtpHost)
 
-  if (!emailUser || !emailPass || !receiverEmail) {
+  if (useResendApi) {
+    if (!resendApiKey || !emailUser || !receiverEmail) {
+      console.error(`${logPrefix} missing Resend API config`, {
+        RESEND_API_KEY: Boolean(resendApiKey),
+        EMAIL_USER: Boolean(emailUser),
+        RECEIVER_EMAIL: Boolean(receiverEmail),
+      })
+      return res.status(500).json({
+        error: 'Resend configuration missing. Set RESEND_API_KEY (or SMTP_PASS with re_ key), EMAIL_USER (from address), and RECEIVER_EMAIL.',
+      })
+    }
+  } else if (!emailUser || !emailPass || !receiverEmail) {
     console.error(`${logPrefix} missing required env vars`, {
       EMAIL_USER: Boolean(emailUser),
       EMAIL_PASS: Boolean(emailPass),
@@ -138,42 +196,60 @@ app.post('/send-email', async (req, res) => {
   console.log(`${logPrefix} sending email`, { subject, textLength: text.length, to: mask(receiverEmail) })
 
   try {
-    const transporterMode = smtpHost
-      ? 'smtp-host'
-      : (process.env.EMAIL_SERVICE || 'gmail').toLowerCase() === 'gmail'
-        ? 'gmail-smtp'
-        : `service:${process.env.EMAIL_SERVICE || 'gmail'}`
-    console.log(`${logPrefix} creating transporter`, {
-      mode: transporterMode,
-      smtpPort,
-      smtpSecure,
-      emailSendTimeoutMs,
-    })
+    let info
 
-    const transporter = createMailTransporter({
-      emailUser,
-      emailPass,
-      smtpHost,
-      smtpPort,
-      smtpSecure,
-    })
+    if (useResendApi) {
+      console.log(`${logPrefix} sending via Resend HTTP API`, { emailSendTimeoutMs })
+      info = await withTimeout(
+        sendViaResendApi({
+          apiKey: resendApiKey,
+          from: emailUser,
+          to: receiverEmail,
+          subject,
+          text,
+        }),
+        emailSendTimeoutMs,
+        'Resend API send',
+      )
+      console.log(`${logPrefix} email sent successfully via Resend API`, { id: info?.id })
+    } else {
+      const transporterMode = smtpHost
+        ? 'smtp-host'
+        : (process.env.EMAIL_SERVICE || 'gmail').toLowerCase() === 'gmail'
+          ? 'gmail-smtp'
+          : `service:${process.env.EMAIL_SERVICE || 'gmail'}`
+      console.log(`${logPrefix} creating transporter`, {
+        mode: transporterMode,
+        smtpPort,
+        smtpSecure,
+        emailSendTimeoutMs,
+      })
 
-    const info = await withTimeout(
-      transporter.sendMail({
-        from: emailUser,
-        to: receiverEmail,
-        subject,
-        text,
-      }),
-      emailSendTimeoutMs,
-      'Email send',
-    )
+      const transporter = createMailTransporter({
+        emailUser,
+        emailPass,
+        smtpHost,
+        smtpPort,
+        smtpSecure,
+      })
 
-    console.log(`${logPrefix} email sent successfully`, {
-      messageId: info.messageId,
-      accepted: info.accepted,
-      rejected: info.rejected,
-    })
+      info = await withTimeout(
+        transporter.sendMail({
+          from: emailUser,
+          to: receiverEmail,
+          subject,
+          text,
+        }),
+        emailSendTimeoutMs,
+        'Email send',
+      )
+
+      console.log(`${logPrefix} email sent successfully`, {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+      })
+    }
 
     return res.status(200).json({ message: 'Email notification sent.' })
   } catch (error) {
