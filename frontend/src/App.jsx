@@ -36,30 +36,57 @@ function App() {
   }
 
   const handleYes = async () => {
+    const logPrefix = '[love-journey-frontend]'
+    const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
+    const sendEmailUrl = `${apiBase}/send-email`
+
     setYesStatus('loading')
     setYesMessage('Sending a love update to Rishi... 💌')
     fireCelebration()
 
+    console.log(`${logPrefix} Yes clicked — sending email request`, {
+      apiBase,
+      sendEmailUrl,
+      viteApiUrlSet: Boolean(import.meta.env.VITE_API_URL),
+    })
+
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL ?? 'http://localhost:5000'}/send-email`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject: 'She said YES! 💍',
-            text: 'Khushi accepted your proposal!',
-          }),
-        },
-      )
+      const response = await fetch(sendEmailUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: 'She said YES! 💍',
+          text: 'Khushi accepted your proposal!',
+        }),
+      })
+
+      let responseBody = null
+      try {
+        responseBody = await response.json()
+      } catch {
+        responseBody = { parseError: 'Response was not JSON' }
+      }
+
+      console.log(`${logPrefix} email API response`, {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        body: responseBody,
+      })
 
       if (!response.ok) {
-        throw new Error('Email API request failed')
+        const detail = responseBody?.details || responseBody?.error || response.statusText
+        throw new Error(`Email API failed (${response.status}): ${detail}`)
       }
 
       setYesStatus('success')
       setYesMessage('Perfect! The email has been sent to Rishi. Forever starts now. ❤️')
-    } catch {
+    } catch (error) {
+      console.error(`${logPrefix} email request failed`, {
+        name: error?.name,
+        message: error?.message,
+        cause: error?.cause,
+      })
       setYesStatus('error')
       setYesMessage('You still said yes, but the email failed. Retry once and we are golden. 💕')
     }
