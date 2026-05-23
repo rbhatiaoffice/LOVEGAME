@@ -16,10 +16,18 @@ function mask(value) {
   return `${value.slice(0, 2)}***${value.slice(-2)}`
 }
 
+function normalizeOrigin(origin) {
+  if (!origin || origin === '*') return origin
+  return origin.replace(/\/+$/, '')
+}
+
+const frontendOrigin = normalizeOrigin(process.env.FRONTEND_ORIGIN) || '*'
+
 function logEmailConfig(context) {
   console.log(`${logPrefix} ${context} email config:`, {
     NODE_ENV: process.env.NODE_ENV || '(not set)',
     FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || '(not set)',
+    FRONTEND_ORIGIN_CORS: frontendOrigin,
     EMAIL_SERVICE: process.env.EMAIL_SERVICE || 'gmail (default)',
     EMAIL_USER: mask(process.env.EMAIL_USER),
     EMAIL_PASS: process.env.EMAIL_PASS ? '(set)' : '(not set)',
@@ -32,7 +40,7 @@ function logEmailConfig(context) {
   })
 }
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }))
+app.use(cors({ origin: frontendOrigin }))
 app.use(express.json())
 
 app.use((req, _res, next) => {
