@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { HEART_TARGET } from '../data/gameConfig'
 
 function randomPosition() {
   return {
@@ -8,7 +9,7 @@ function randomPosition() {
   }
 }
 
-function FinalProposal({ status, message, onYes }) {
+function FinalProposal({ heartsCaught, status, message, onYes }) {
   const [noPosition, setNoPosition] = useState({ x: 0, y: 0 })
 
   const moveNoButton = () => {
@@ -16,17 +17,23 @@ function FinalProposal({ status, message, onYes }) {
   }
 
   return (
-    <section className="rounded-3xl border border-white/70 bg-white/80 p-6 text-center shadow-2xl backdrop-blur-sm sm:p-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-500">Final Chapter</p>
-      <h2 className="mt-3 text-balance text-3xl font-bold text-slate-800 sm:text-5xl">
-        Khushi, will you marry me? 💍
-      </h2>
-      <p className="mx-auto mt-4 max-w-xl text-pretty text-slate-600">
-        You are my favorite person, my daily smile, and my forever home. Let us make every chapter
-        even cuter together.
+    <section className="proposal-card rounded-[2rem] border border-white/60 bg-white/85 p-8 text-center shadow-2xl backdrop-blur-md sm:p-12">
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-fuchsia-500">
+        You won the game
+      </p>
+      <p className="mt-2 text-sm text-rose-600">
+        {heartsCaught} hearts caught — mission complete 💕
       </p>
 
-      <div className="relative mx-auto mt-8 flex h-36 max-w-md items-center justify-center gap-4">
+      <h2 className="mt-4 text-balance text-3xl font-bold text-slate-800 sm:text-5xl">
+        Khushi, will you marry me? 💍
+      </h2>
+      <p className="mx-auto mt-4 max-w-xl text-pretty leading-relaxed text-slate-600">
+        You are my favorite person, my daily smile, and my forever home. Every heart you caught
+        is one more reason I choose you — in every chapter, forever.
+      </p>
+
+      <div className="relative mx-auto mt-10 flex h-36 max-w-md items-center justify-center gap-4">
         <motion.button
           whileHover={{ scale: 1.07 }}
           whileTap={{ scale: 0.96 }}
@@ -50,13 +57,15 @@ function FinalProposal({ status, message, onYes }) {
 
       {message && (
         <p
-          className={`mx-auto mt-4 max-w-xl rounded-xl px-4 py-3 text-sm ${
+          className={`mx-auto mt-6 max-w-xl rounded-xl px-4 py-3 text-sm ${
             status === 'error' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
           }`}
         >
           {message}
         </p>
       )}
+
+      <p className="mt-6 text-xs text-slate-400">Built with love by Rishi · target was {HEART_TARGET} hearts</p>
     </section>
   )
 }

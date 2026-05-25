@@ -1,37 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import confetti from 'canvas-confetti'
 import { AnimatePresence, motion } from 'framer-motion'
 import Landing from './components/Landing'
-import QuestionCard from './components/QuestionCard'
+import LoveGame from './components/LoveGame'
 import FinalProposal from './components/FinalProposal'
 import FloatingHearts from './components/FloatingHearts'
 import MusicToggle from './components/MusicToggle'
-import { storySteps } from './data/storySteps'
+import { HEART_TARGET } from './data/gameConfig'
 
 function App() {
-  const [hasStarted, setHasStarted] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
-  const [answerLog, setAnswerLog] = useState([])
+  const [phase, setPhase] = useState('landing')
+  const [heartsCaught, setHeartsCaught] = useState(0)
   const [yesStatus, setYesStatus] = useState('idle')
   const [yesMessage, setYesMessage] = useState('')
-
-  const isFinalStep = currentStep >= storySteps.length
-  const currentQuestion = storySteps[currentStep]
-
-  const memoryText = useMemo(() => {
-    if (answerLog.length === 0) return 'Our story starts with one click and a million smiles.'
-    const lastChoice = answerLog[answerLog.length - 1].answer
-    return `Latest chapter unlocked: "${lastChoice}" ✨`
-  }, [answerLog])
-
-  const handleChoice = (choiceLabel) => {
-    const step = storySteps[currentStep]
-    setAnswerLog((prev) => [
-      ...prev,
-      { question: step.question, answer: choiceLabel },
-    ])
-    setCurrentStep((prev) => prev + 1)
-  }
 
   const fireCelebration = () => {
     confetti({ particleCount: 180, spread: 100, origin: { y: 0.65 } })
@@ -61,7 +42,12 @@ function App() {
         body: JSON.stringify({
           subject: 'She said YES! 💍',
           proposalAccepted: true,
-          answers: answerLog,
+          answers: [
+            {
+              question: 'Heart catcher game',
+              answer: `Caught ${heartsCaught} / ${HEART_TARGET} hearts`,
+            },
+          ],
         }),
       })
 
@@ -98,49 +84,69 @@ function App() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 text-slate-800">
+    <main className="app-root relative min-h-screen overflow-hidden text-slate-800">
       <FloatingHearts />
       <MusicToggle />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-3xl items-center justify-center p-4 sm:p-8">
+      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 pt-6 sm:px-8">
+        <p className="text-sm font-semibold tracking-wide text-rose-700/90">
+          <span className="text-lg">💕</span> Khushi & Rishi
+        </p>
+        {phase === 'game' && (
+          <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-fuchsia-700 shadow-sm">
+            Game on
+          </span>
+        )}
+      </header>
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center p-4 pb-10 sm:p-8">
         <AnimatePresence mode="wait">
-          {!hasStarted ? (
+          {phase === 'landing' && (
             <motion.div
               key="landing"
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -24 }}
+              exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.45 }}
               className="w-full"
             >
-              <Landing onStart={() => setHasStarted(true)} />
+              <Landing onStart={() => setPhase('game')} />
             </motion.div>
-          ) : isFinalStep ? (
+          )}
+
+          {phase === 'game' && (
+            <motion.div
+              key="game"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.4 }}
+              className="w-full"
+            >
+              <LoveGame
+                onScoreChange={setHeartsCaught}
+                onComplete={(finalScore) => {
+                  setHeartsCaught(finalScore)
+                  setPhase('proposal')
+                }}
+              />
+            </motion.div>
+          )}
+
+          {phase === 'proposal' && (
             <motion.div
               key="proposal"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.45 }}
-              className="w-full"
+              className="w-full max-w-2xl"
             >
-              <FinalProposal status={yesStatus} message={yesMessage} onYes={handleYes} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key={`step-${currentStep}`}
-              initial={{ opacity: 0, x: 48 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -48 }}
-              transition={{ duration: 0.35 }}
-              className="w-full"
-            >
-              <QuestionCard
-                step={currentQuestion}
-                stepCount={currentStep + 1}
-                totalSteps={storySteps.length}
-                memoryText={memoryText}
-                onChoose={handleChoice}
+              <FinalProposal
+                heartsCaught={heartsCaught}
+                status={yesStatus}
+                message={yesMessage}
+                onYes={handleYes}
               />
             </motion.div>
           )}
