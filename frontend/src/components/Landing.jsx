@@ -12,8 +12,8 @@ function Landing({ onStart }) {
             Hey Khushi ❤️
           </h1>
           <p className="mt-4 max-w-md text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
-            Rishi built a tiny world just for you. Play a quick heart-catching game, then see what
-            he has been saving for the finish.
+            Rishi built a tiny world just for you — a game, a few spicy funny questions, then the
+            question he has been saving for last.
           </p>
         </div>
 
@@ -30,11 +30,20 @@ function Landing({ onStart }) {
             </li>
             <li className="flex gap-3">
               <span className="text-xl" aria-hidden>
+                🌶️
+              </span>
+              <span>
+                <strong className="text-slate-800">Spicy Q&A</strong> — flirty, funny questions only
+                for you (answers go straight to Rishi).
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-xl" aria-hidden>
                 ✨
               </span>
               <span>
-                <strong className="text-slate-800">Unlock the surprise</strong> — win the game to
-                open the final chapter.
+                <strong className="text-slate-800">The big finish</strong> — win the game, survive
+                the teasing, then the proposal.
               </span>
             </li>
             <li className="flex gap-3">

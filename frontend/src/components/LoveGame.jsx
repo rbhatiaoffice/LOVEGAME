@@ -69,8 +69,8 @@ function LoveGame({ onComplete, onScoreChange }) {
             Catch the hearts, Khushi
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">
-            Tap every floating heart before it fades. Collect {HEART_TARGET} and unlock the
-            surprise Rishi saved for you.
+            Tap every floating heart before it fades. Collect {HEART_TARGET} to unlock the spicy
+            questions — then the surprise.
           </p>
 
           <div className="mt-6">
@@ -109,7 +109,7 @@ function LoveGame({ onComplete, onScoreChange }) {
 
           {won && (
             <p className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-              You did it! Opening your surprise… ✨
+              You did it! Spicy questions loading… 🌶️✨
             </p>
           )}
         </aside>
