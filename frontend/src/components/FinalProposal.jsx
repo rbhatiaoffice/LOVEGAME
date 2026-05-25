@@ -1,72 +1,83 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { HEART_TARGET } from '../data/gameConfig'
 
 function randomPosition() {
   return {
-    x: Math.floor(Math.random() * 160) - 80,
-    y: Math.floor(Math.random() * 120) - 60,
+    x: Math.floor(Math.random() * 140) - 70,
+    y: Math.floor(Math.random() * 100) - 50,
   }
 }
 
-function FinalProposal({ heartsCaught, status, message, onYes }) {
+function FinalProposal({ status, message, onYes }) {
   const [noPosition, setNoPosition] = useState({ x: 0, y: 0 })
 
-  const moveNoButton = () => {
-    setNoPosition(randomPosition())
-  }
+  const moveNoButton = () => setNoPosition(randomPosition())
 
   return (
-    <section className="proposal-card rounded-[2rem] border border-white/60 bg-white/85 p-8 text-center shadow-2xl backdrop-blur-md sm:p-12">
-      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-fuchsia-500">
-        You won the game
-      </p>
-      <p className="mt-2 text-sm text-rose-600">
-        {heartsCaught} hearts caught — mission complete 💕
-      </p>
-
-      <h2 className="mt-4 text-balance text-3xl font-bold text-slate-800 sm:text-5xl">
-        Khushi, will you marry me? 💍
-      </h2>
-      <p className="mx-auto mt-4 max-w-xl text-pretty leading-relaxed text-slate-600">
-        You are my favorite person, my daily smile, and my forever home. Every heart you caught
-        is one more reason I choose you — in every chapter, forever.
-      </p>
-
-      <div className="relative mx-auto mt-10 flex h-36 max-w-md items-center justify-center gap-4">
-        <motion.button
-          whileHover={{ scale: 1.07 }}
-          whileTap={{ scale: 0.96 }}
-          disabled={status === 'loading'}
-          onClick={onYes}
-          className="rounded-full bg-gradient-to-r from-rose-500 to-fuchsia-500 px-8 py-3 text-lg font-semibold text-white shadow-lg transition disabled:opacity-70"
-        >
-          {status === 'loading' ? 'Sending...' : 'Yes ❤️'}
-        </motion.button>
-
-        <motion.button
-          animate={{ x: noPosition.x, y: noPosition.y }}
-          transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-          onMouseEnter={moveNoButton}
-          onClick={moveNoButton}
-          className="rounded-full border border-fuchsia-200 bg-white px-6 py-3 font-semibold text-fuchsia-600 shadow-sm"
-        >
-          No 😜
-        </motion.button>
-      </div>
-
-      {message && (
-        <p
-          className={`mx-auto mt-6 max-w-xl rounded-xl px-4 py-3 text-sm ${
-            status === 'error' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
-          }`}
-        >
-          {message}
+    <div className="proposal-stage">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="glass-panel-dark p-8 sm:p-12"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#ffd89b]">
+          The last page
         </p>
-      )}
 
-      <p className="mt-6 text-xs text-slate-400">Built with love by Rishi · target was {HEART_TARGET} hearts</p>
-    </section>
+        <h2 className="font-serif mt-4 text-4xl font-bold leading-tight text-white sm:text-5xl">
+          Khushi,
+          <br />
+          will you marry me?
+        </h2>
+
+        <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-white/85">
+          Under every sky we will ever see, my answer is the same — I love you, completely. Be my
+          forever, my home, my always.
+        </p>
+
+        <div className="relative mx-auto mt-10 flex min-h-[7rem] max-w-sm flex-wrap items-center justify-center gap-4">
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.96 }}
+            disabled={status === 'loading'}
+            onClick={onYes}
+            className="btn-primary disabled:opacity-70"
+          >
+            {status === 'loading' ? 'Sending…' : 'Yes, forever 💍'}
+          </motion.button>
+
+          <motion.button
+            type="button"
+            animate={{ x: noPosition.x, y: noPosition.y }}
+            transition={{ type: 'spring', stiffness: 280, damping: 20 }}
+            onMouseEnter={moveNoButton}
+            onFocus={moveNoButton}
+            onClick={moveNoButton}
+            className="btn-ghost"
+          >
+            No 😜
+          </motion.button>
+        </div>
+
+        {message && (
+          <p
+            className={`mx-auto mt-6 max-w-md rounded-xl px-4 py-3 text-sm ${
+              status === 'error'
+                ? 'bg-amber-500/20 text-amber-100'
+                : 'bg-white/10 text-white/90'
+            }`}
+          >
+            {message}
+          </p>
+        )}
+      </motion.div>
+
+      <p className="mt-6 text-center text-sm text-white/50">
+        Built with all of Rishi&apos;s love · your sky, your story
+      </p>
+    </div>
   )
 }
 

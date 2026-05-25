@@ -2,72 +2,57 @@ import { motion } from 'framer-motion'
 
 function Landing({ onStart }) {
   return (
-    <section className="landing-shell overflow-hidden rounded-[2rem] border border-white/50 bg-white/80 shadow-2xl backdrop-blur-md">
-      <div className="landing-grid">
-        <div className="landing-hero bg-gradient-to-br from-rose-100/80 via-fuchsia-50 to-violet-100/70 p-8 sm:p-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-500">
-            Made for you
-          </p>
-          <h1 className="mt-3 text-balance text-4xl font-bold leading-tight text-slate-800 sm:text-5xl">
-            Hey Khushi ❤️
-          </h1>
-          <p className="mt-4 max-w-md text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
-            Rishi built a tiny world just for you — a game, a few spicy funny questions, then the
-            question he has been saving for last.
-          </p>
+    <div className="hero-layout">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="glass-panel-dark p-8 sm:p-10"
+      >
+        <span className="hero-badge">Khushi&apos;s favorite color</span>
+        <h1 className="font-serif mt-6 text-4xl font-bold leading-[1.1] text-white sm:text-5xl lg:text-6xl">
+          A sky painted
+          <br />
+          <span className="text-[#ffd89b]">just for you</span>
+        </h1>
+        <p className="mt-6 max-w-md text-base leading-relaxed text-white/80 sm:text-lg">
+          Hi Khushi — Rishi built this little world where every question is a love note, every
+          answer reaches his heart, and the last page holds something he has waited to ask you.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3 text-sm text-white/70">
+          <span className="rounded-lg bg-white/10 px-3 py-1.5">9 moments</span>
+          <span className="rounded-lg bg-white/10 px-3 py-1.5">Romantic & funny</span>
+          <span className="rounded-lg bg-white/10 px-3 py-1.5">One forever question</span>
         </div>
+      </motion.div>
 
-        <div className="flex flex-col justify-center gap-6 p-8 sm:p-12">
-          <ul className="space-y-4 text-sm text-slate-600 sm:text-base">
-            <li className="flex gap-3">
-              <span className="text-xl" aria-hidden>
-                🎮
-              </span>
-              <span>
-                <strong className="text-slate-800">Catch the hearts</strong> — tap them before they
-                fade away.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-xl" aria-hidden>
-                🌶️
-              </span>
-              <span>
-                <strong className="text-slate-800">Spicy Q&A</strong> — flirty, funny questions only
-                for you (answers go straight to Rishi).
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-xl" aria-hidden>
-                ✨
-              </span>
-              <span>
-                <strong className="text-slate-800">The big finish</strong> — win the game, survive
-                the teasing, then the proposal.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-xl" aria-hidden>
-                💍
-              </span>
-              <span>
-                <strong className="text-slate-800">One special question</strong> — waiting at the
-                end, just for you.
-              </span>
-            </li>
-          </ul>
-
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onStart}
-            className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-rose-500 to-fuchsia-500 px-8 py-4 text-lg font-semibold text-white shadow-lg transition hover:shadow-xl sm:w-auto sm:self-start"
-          >
-            Play the game 💕
-          </motion.button>
-        </div>
-      </div>
-    </section>
+      <motion.div
+        initial={{ opacity: 0, y: 32 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.15 }}
+        className="glass-panel flex flex-col justify-center p-8 sm:p-10"
+      >
+        <p className="text-sm font-semibold uppercase tracking-widest text-horizon">From Rishi</p>
+        <blockquote className="font-serif mt-4 text-2xl leading-snug text-ink sm:text-3xl">
+          &ldquo;You are the sky I look up to — calm, endless, and the most beautiful part of my
+          day.&rdquo;
+        </blockquote>
+        <p className="mt-6 text-ink-soft leading-relaxed">
+          Walk through each chapter at your pace. Pick the answers that feel true — he wants you to
+          feel loved, seen, and sure that his heart is entirely yours.
+        </p>
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onStart}
+          className="btn-primary mt-8 w-full sm:w-auto"
+        >
+          Open your sky diary
+          <span aria-hidden>→</span>
+        </motion.button>
+      </motion.div>
+    </div>
   )
 }
 
